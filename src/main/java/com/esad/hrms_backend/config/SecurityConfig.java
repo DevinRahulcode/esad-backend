@@ -2,7 +2,8 @@ package com.esad.hrms_backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod; // Make sure this is imported
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.userdetails.User;
@@ -18,70 +19,85 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+    // Password encoder
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // In-memory admin user
     @Bean
-    public UserDetailsService userDetailsService() {
+    public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
         UserDetails adminUser = User.builder()
                 .username("admin@example.com")
-                .password(passwordEncoder().encode("AdminPassword123"))
+                .password(passwordEncoder.encode("AdminPassword123"))
                 .roles("ADMIN")
                 .build();
-
         return new InMemoryUserDetailsManager(adminUser);
     }
 
+    // AuthenticationManager
+    @Bean
+    public AuthenticationManager authenticationManager(HttpSecurity http,
+                                                       PasswordEncoder passwordEncoder,
+                                                       UserDetailsService userDetailsService) throws Exception {
+        return http.getSharedObject(AuthenticationManagerBuilder.class)
+                .userDetailsService(userDetailsService)
+                .passwordEncoder(passwordEncoder)
+                .and()
+                .build();
+    }
 
+    // Security rules
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .cors(withDefaults())
-                .csrf(csrf -> csrf.disable())
+                .cors().and()
+                .csrf().disable()
                 .authorizeHttpRequests(authz -> authz
-                        // --- UPDATED & CLEANER RULES ---
+                        // Public endpoints: leave & attendance accessible from frontend
+                        .requestMatchers(
+                                "/leave/**",
+                                "/api/attendance/**",
+                                "/api/leave/**",
+                                "/api/employee/**",
+                                "/api/employees/by-email",
+                                "/api/employees/**",
+                                "/api/payslips/**",
+                                "/h2-console/**"
+                        ).permitAll()
 
-                        // 1. Allow public access to the authentication endpoints (login/logout)
-                        .requestMatchers("/api/auth/**").permitAll()
+                        // Admin-only endpoints
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // 2. Allow anyone to register by POSTing to the new, structured URL
-                        .requestMatchers(HttpMethod.POST, "/api/employees/add").permitAll()
-
-                        // 3. Secure ALL other employee and admin endpoints for ADMINs only.
-                        // This single line protects /getall, /edit, /delete, etc.
-                        .requestMatchers("/api/employees/**", "/api/admin/**").hasRole("ADMIN")
-
-                        // 4. (Best Practice) Any other request not matched above requires authentication
+                        // Everything else requires authentication
                         .anyRequest().authenticated()
                 )
-                .formLogin(form -> form
-                        .loginProcessingUrl("/api/auth/login")
-                        .successHandler((request, response, authentication) -> response.setStatus(200))
-                        .failureHandler((request, response, exception) -> response.setStatus(401))
-                )
-                .logout(logout -> logout
-                        .logoutUrl("/api/auth/logout")
-                        .logoutSuccessHandler((request, response, authentication) -> response.setStatus(200))
-                );
+                // Enable HTTP Basic auth for React login
+                .httpBasic();
+
+        // Allow frames for H2 console
+        http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
 
         return http.build();
     }
 
+    // CORS configuration for React + mobile frontend
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Make sure the URL of YOUR React app is in this list
-        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:3000", "http://localhost:3001"));
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:3000",  // React web
+                "http://localhost:3001",
+                "http://10.0.2.2:8081",   // Android emulator
+                "http://10.0.2.2:8080"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
