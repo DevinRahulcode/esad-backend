@@ -23,7 +23,6 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // Password encoder
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -40,7 +39,6 @@ public class SecurityConfig {
         return new InMemoryUserDetailsManager(adminUser);
     }
 
-    // AuthenticationManager
     @Bean
     public AuthenticationManager authenticationManager(HttpSecurity http,
                                                        PasswordEncoder passwordEncoder,
@@ -59,44 +57,42 @@ public class SecurityConfig {
                 .cors().and()
                 .csrf().disable()
                 .authorizeHttpRequests(authz -> authz
-                        // Public endpoints: leave & attendance accessible from frontend
+                        // ✅ Public APIs for mobile app
                         .requestMatchers(
+                                "/api/auth/**",
                                 "/leave/**",
                                 "/api/attendance/**",
+                                "/api/recent-activity/**",
                                 "/api/leave/**",
                                 "/api/employee/**",
-                                "/api/employees/by-email",
                                 "/api/employees/**",
                                 "/api/payslips/**",
                                 "/h2-console/**"
                         ).permitAll()
-
-                        // Admin-only endpoints
+                        // Admin only
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                        // Everything else requires authentication
                         .anyRequest().authenticated()
                 )
-                // Enable HTTP Basic auth for React login
-                .httpBasic();
+                .formLogin().disable()
+                .httpBasic().disable(); // Disable basic auth for mobile
 
-        // Allow frames for H2 console
+        // Allow H2 console frames
         http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
 
         return http.build();
     }
 
-    // CORS configuration for React + mobile frontend
+    // CORS configuration
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:3000",  // React web
+                "http://localhost:3000",
                 "http://localhost:3001",
-                "http://10.0.2.2:8081",   // Android emulator
+                "http://10.0.2.2:8081",
                 "http://10.0.2.2:8080"
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
 

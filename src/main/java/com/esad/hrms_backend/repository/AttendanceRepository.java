@@ -11,4 +11,6 @@ import java.util.List;
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     // find history for an employee, newest first
     List<Attendance> findByEmployeeIdOrderByTimestampDesc(String employeeId);
+    List<Attendance> findByEmployeeId(String employeeId);
+
 }

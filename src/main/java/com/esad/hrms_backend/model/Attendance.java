@@ -11,37 +11,36 @@ public class Attendance {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Unique id of employee (could be username or employee number)
     @Column(nullable = false)
     private String employeeId;
 
     @Column(nullable = false)
     private String employeeName;
 
-    // e.g., "CHECKIN", "CHECKOUT", "LEAVE"
     @Column(nullable = false)
     private String type;
 
-    // Optional reason / note for leave
     @Column(length = 1000)
     private String note;
 
-    // When this record happened / was created
     @Column(nullable = false)
     private LocalDateTime timestamp;
 
+    // 🆕 New field: store location name (e.g. "Colombo, Sri Lanka")
+    private String location;
+
     public Attendance() {}
 
-    public Attendance(String employeeId, String employeeName, String type, String note, LocalDateTime timestamp) {
+    public Attendance(String employeeId, String employeeName, String type, String note, LocalDateTime timestamp, String location) {
         this.employeeId = employeeId;
         this.employeeName = employeeName;
         this.type = type;
         this.note = note;
         this.timestamp = timestamp;
+        this.location = location;
     }
 
-    // Getters and setters
-
+    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -59,4 +58,7 @@ public class Attendance {
 
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+
+    public String getLocation() { return location; }
+    public void setLocation(String location) { this.location = location; }
 }
