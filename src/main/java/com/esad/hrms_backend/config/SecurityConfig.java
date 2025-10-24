@@ -23,85 +23,83 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // Password encoder
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        // Password encoder
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 
-    // In-memory admin user
-    @Bean
-    public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
-        UserDetails adminUser = User.builder()
-                .username("admin@example.com")
-                .password(passwordEncoder.encode("AdminPassword123"))
-                .roles("ADMIN")
-                .build();
-        return new InMemoryUserDetailsManager(adminUser);
-    }
+        // In-memory admin user
+        @Bean
+        public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
+                UserDetails adminUser = User.builder()
+                                .username("admin@example.com")
+                                .password(passwordEncoder.encode("AdminPassword123"))
+                                .roles("ADMIN")
+                                .build();
+                return new InMemoryUserDetailsManager(adminUser);
+        }
 
-    // AuthenticationManager
-    @Bean
-    public AuthenticationManager authenticationManager(HttpSecurity http,
-                                                       PasswordEncoder passwordEncoder,
-                                                       UserDetailsService userDetailsService) throws Exception {
-        return http.getSharedObject(AuthenticationManagerBuilder.class)
-                .userDetailsService(userDetailsService)
-                .passwordEncoder(passwordEncoder)
-                .and()
-                .build();
-    }
+        // AuthenticationManager
+        @Bean
+        public AuthenticationManager authenticationManager(HttpSecurity http,
+                        PasswordEncoder passwordEncoder,
+                        UserDetailsService userDetailsService) throws Exception {
+                return http.getSharedObject(AuthenticationManagerBuilder.class)
+                                .userDetailsService(userDetailsService)
+                                .passwordEncoder(passwordEncoder)
+                                .and()
+                                .build();
+        }
 
-    // Security rules
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .cors().and()
-                .csrf().disable()
-                .authorizeHttpRequests(authz -> authz
-                        // Public endpoints: leave & attendance accessible from frontend
-                        .requestMatchers(
-                                "/leave/**",
-                                "/api/attendance/**",
-                                "/api/leave/**",
-                                "/api/employee/**",
-                                "/api/employees/by-email",
-                                "/api/employees/**",
-                                "/api/payslips/**",
-                                "/h2-console/**"
-                        ).permitAll()
+        // Security rules
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                http
+                                .cors().and()
+                                .csrf().disable()
+                                .authorizeHttpRequests(authz -> authz
+                                                // Public endpoints: leave & attendance accessible from frontend
+                                                .requestMatchers(
+                                                                "/leave/**",
+                                                                "/api/attendance/**",
+                                                                "/api/leave/**",
+                                                                "/api/employee/**",
+                                                                "/api/employees/by-email",
+                                                                "/api/employees/**",
+                                                                "/api/payslips/**",
+                                                                "/h2-console/**")
+                                                .permitAll()
 
-                        // Admin-only endpoints
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                                                // Admin-only endpoints
+                                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // Everything else requires authentication
-                        .anyRequest().authenticated()
-                )
-                // Enable HTTP Basic auth for React login
-                .httpBasic();
+                                                // Everything else requires authentication
+                                                .anyRequest().authenticated())
+                                // Enable HTTP Basic auth for React login
+                                .httpBasic();
 
-        // Allow frames for H2 console
-        http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
+                // Allow frames for H2 console
+                http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    // CORS configuration for React + mobile frontend
-    @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:3000",  // React web
-                "http://localhost:3001",
-                "http://10.0.2.2:8081",   // Android emulator
-                "http://10.0.2.2:8080"
-        ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
+        // CORS configuration for React + mobile frontend
+        @Bean
+        CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
+                configuration.setAllowedOriginPatterns(Arrays.asList(
+                                "http://localhost:3000", // React web
+                                "http://localhost:3001",
+                                "http://10.0.2.2:8081", // Android emulator
+                                "http://10.0.2.2:4000"));
+                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                configuration.setAllowedHeaders(Arrays.asList("*"));
+                configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
+        }
 }
