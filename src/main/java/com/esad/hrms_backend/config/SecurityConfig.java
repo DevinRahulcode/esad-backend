@@ -64,6 +64,7 @@ public class SecurityConfig {
                                 "/api/attendance/**",
                                 "/api/recent-activity/**",
                                 "/api/leave/**",
+                                "/api/dashboard/**",
                                 "/api/employee/**",
                                 "/api/employees/**",
                                 "/api/payslips/**",
@@ -88,6 +89,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:3000",
+                "http://localhost:8080",
                 "http://localhost:3001",
                 "http://10.0.2.2:8081",
                 "http://10.0.2.2:8080"
